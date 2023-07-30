@@ -1,4 +1,4 @@
-# video-gan-neural-network-model
+# video-generative-neural-network-model
 a neural network model that generate videos
 
 
