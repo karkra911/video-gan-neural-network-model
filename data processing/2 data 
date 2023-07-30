@@ -1,0 +1,20 @@
+def preprocess_frames(input_folder, output_folder, target_size=(256, 256)):
+    os.makedirs(output_folder, exist_ok=True)
+
+    for filename in os.listdir(input_folder):
+        # Read the frame
+        frame = cv2.imread(os.path.join(input_folder, filename))
+
+        # Resize the frame to the target size
+        frame = cv2.resize(frame, target_size)
+
+        # Normalize pixel values (assuming pixel range is [0, 255])
+        frame = frame.astype('float32') / 255.0
+
+        # You can perform additional preprocessing steps here if needed
+
+        # Save the preprocessed frame in the output folder
+        output_path = os.path.join(output_folder, filename)
+        cv2.imwrite(output_path, frame)
+
+    print("Preprocessing complete.")

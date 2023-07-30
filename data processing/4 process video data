@@ -1,0 +1,14 @@
+# Replace 'video.mp4' with the path to your video file
+video_path = 'video.mp4'
+
+# Replace 'frames' with the folder where you want to save the extracted frames
+output_folder_frames = 'frames'
+
+# Replace 'preprocessed_frames' with the folder where you want to save the preprocessed frames
+output_folder_preprocessed = 'preprocessed_frames'
+
+# Step 1: Extract frames from the video
+extract_frames(video_path, output_folder_frames)
+
+# Step 2: Preprocess the frames
+preprocess_frames(output_folder_frames, output_folder_preprocessed)
