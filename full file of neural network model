@@ -1,0 +1,485 @@
+def discriminator_loss(real_predictions, fake_predictions):
+    real_loss = tf.reduce_mean(tf.keras.losses.binary_crossentropy(tf.ones_like(real_predictions), real_predictions))
+    fake_loss = tf.reduce_mean(tf.keras.losses.binary_crossentropy(tf.zeros_like(fake_predictions), fake_predictions))
+    total_loss = real_loss + fake_loss
+    return total_loss
+
+
+
+
+
+import tensorflow as tf
+
+# Mean Squared Error (MSE) for content loss
+def content_loss(desired_frame, generated_frame):
+    return tf.reduce_mean(tf.square(desired_frame - generated_frame))
+
+# Binary Cross-Entropy (BCE) for adversarial loss
+def adversarial_loss(fake_predictions):
+    return tf.reduce_mean(tf.keras.losses.binary_crossentropy(tf.ones_like(fake_predictions), fake_predictions))
+
+
+
+
+
+
+# In the training loop:
+
+# Step 1: Train the discriminator
+with tf.GradientTape() as disc_tape:
+    real_predictions = discriminator(real_frames)
+    fake_predictions = discriminator(generated_frames)
+    disc_loss = discriminator_loss(real_predictions, fake_predictions)
+
+# Calculate gradients and update discriminator's weights
+disc_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+disc_optimizer.apply_gradients(zip(disc_gradients, discriminator.trainable_variables))
+
+# Step 2: Train the generator
+with tf.GradientTape() as gen_tape:
+    generated_frames = generator(input_frames)
+    fake_predictions = discriminator(generated_frames)
+    content_loss = content_loss(desired_frames, generated_frames)
+    adv_loss = adversarial_loss(fake_predictions)
+    gen_loss = content_loss_weight * content_loss + adv_loss_weight * adv_loss
+
+# Calculate gradients and update generator's weights
+gen_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
+gen_optimizer.apply_gradients(zip(gen_gradients, generator.trainable_variables))
+
+
+
+
+
+
+def preprocess_frames(input_folder, output_folder, target_size=(256, 256)):
+    os.makedirs(output_folder, exist_ok=True)
+
+    for filename in os.listdir(input_folder):
+        # Read the frame
+        frame = cv2.imread(os.path.join(input_folder, filename))
+
+        # Resize the frame to the target size
+        frame = cv2.resize(frame, target_size)
+
+        # Normalize pixel values (assuming pixel range is [0, 255])
+        frame = frame.astype('float32') / 255.0
+
+        # You can perform additional preprocessing steps here if needed
+
+        # Save the preprocessed frame in the output folder
+        output_path = os.path.join(output_folder, filename)
+        cv2.imwrite(output_path, frame)
+
+    print("Preprocessing complete.")
+
+
+
+
+
+def preprocess_frames(input_folder, output_folder, target_size=(256, 256)):
+    os.makedirs(output_folder, exist_ok=True)
+
+    for filename in os.listdir(input_folder):
+        # Read the frame
+        frame = cv2.imread(os.path.join(input_folder, filename))
+
+        # Resize the frame to the target size
+        frame = cv2.resize(frame, target_size)
+
+        # Normalize pixel values (assuming pixel range is [0, 255])
+        frame = frame.astype('float32') / 255.0
+
+        # You can perform additional preprocessing steps here if needed
+
+        # Save the preprocessed frame in the output folder
+        output_path = os.path.join(output_folder, filename)
+        cv2.imwrite(output_path, frame)
+
+    print("Preprocessing complete.")
+
+
+
+
+
+
+# Replace 'video.mp4' with the path to your video file
+video_path = 'video.mp4'
+
+# Replace 'frames' with the folder where you want to save the extracted frames
+output_folder_frames = 'frames'
+
+# Replace 'preprocessed_frames' with the folder where you want to save the preprocessed frames
+output_folder_preprocessed = 'preprocessed_frames'
+
+# Step 1: Extract frames from the video
+extract_frames(video_path, output_folder_frames)
+
+# Step 2: Preprocess the frames
+preprocess_frames(output_folder_frames, output_folder_preprocessed)
+
+
+
+
+
+
+
+
+
+import cv2
+import os
+
+def extract_frames(video_path, output_folder):
+    # Create the output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Open the video file
+    cap = cv2.VideoCapture(video_path)
+
+    frame_count = 0
+    while True:
+        # Read a frame from the video
+        ret, frame = cap.read()
+
+        if not ret:
+            # Break the loop if no frames are left
+            break
+
+        # Save the frame as an image in the output folder
+        output_path = os.path.join(output_folder, f"frame_{frame_count:04d}.jpg")
+        cv2.imwrite(output_path, frame)
+
+        frame_count += 1
+
+    # Release the video capture object
+    cap.release()
+
+    print(f"Extracted {frame_count} frames from the video.")
+
+
+
+
+
+
+from tensorflow.keras import layers, models
+
+def build_generator():
+    model = models.Sequential()
+
+    # Initial size: (256, 256, 3)
+
+    # Add a dense layer to map random noise to a dense representation
+    model.add(layers.Dense(64 * 64 * 256, input_dim=noise_dim))
+    model.add(layers.LeakyReLU(alpha=0.2))
+    model.add(layers.Reshape((64, 64, 256)))
+
+    # Upsampling blocks
+    model.add(layers.Conv2DTranspose(128, kernel_size=5, strides=2, padding='same'))
+    model.add(layers.LeakyReLU(alpha=0.2)
+
+    model.add(layers.Conv2DTranspose(64, kernel_size=5, strides=2, padding='same'))
+    model.add(layers.LeakyReLU(alpha=0.2))
+
+    # Output layer
+    model.add(layers.Conv2DTranspose(3, kernel_size=5, strides=2, padding='same', activation='tanh'))
+    # Output size: (256, 256, 3)
+
+    return model
+def build_discriminator():
+    model = models.Sequential()
+
+    # Initial size: (256, 256, 3)
+
+    # Down-sampling blocks
+    model.add(layers.Conv2D(64, kernel_size=5, strides=2, padding='same', input_shape=(256, 256, 3)))
+    model.add(layers.LeakyReLU(alpha=0.2))
+
+    model.add(layers.Conv2D(128, kernel_size=5, strides=2, padding='same'))
+    model.add(layers.LeakyReLU(alpha=0.2))
+
+    # Flatten layer
+    model.add(layers.Flatten())
+
+    # Output layer (sigmoid activation for binary classification)
+    model.add(layers.Dense(1, activation='sigmoid'))
+
+    return model
+def build_discriminator():
+    model = models.Sequential()
+
+    # Initial size: (256, 256, 3)
+
+    # Down-sampling blocks
+    model.add(layers.Conv2D(64, kernel_size=5, strides=2, padding='same', input_shape=(256, 256, 3)))
+    model.add(layers.LeakyReLU(alpha=0.2))
+
+    model.add(layers.Conv2D(128, kernel_size=5, strides=2, padding='same'))
+    model.add(layers.LeakyReLU(alpha=0.2))
+
+    # Flatten layer
+    model.add(layers.Flatten())
+
+    # Output layer (sigmoid activation for binary classification)
+    model.add(layers.Dense(1, activation='sigmoid'))
+
+    return model
+Data Preprocessing:
+The code demonstrates how to preprocess video data for a posture transformation task using OpenCV. It extracts frames from an input video, resizes them to a specific size, and normalizes pixel values to [0, 1] range.
+
+Model Architecture:
+The generator and discriminator architectures for the Controlnet GAN are defined using TensorFlow/Keras. The generator transforms input frames to desired postures, while the discriminator distinguishes real from generated frames.
+
+Loss Functions:
+The loss functions for the generator and discriminator are implemented. The generator's loss includes content loss (MSE) and adversarial loss, while the discriminator's loss is binary cross-entropy to distinguish real and generated frames.
+
+Iterative Training:
+The GAN model is trained iteratively for multiple epochs. In each epoch, the generator and discriminator are updated using the defined loss functions and backpropagation.
+
+Evaluation:
+The performance of the trained Controlnet is evaluated using quantitative metrics (PSNR, SSIM) and visual inspection. The generator is evaluated on desired postures, and mean PSNR and SSIM scores are calculated.
+
+Deployment:
+The trained Controlnet is deployed for real-time posture transformation in new videos. The generator is used to process frames from an input video, generating transformed postures. The results are displayed in real-time and saved to an output video file.import cv2
+import numpy as np
+from skimage.metrics import peak_signal_noise_ratio as psnr
+from skimage.metrics import structural_similarity as ssim
+
+# Assuming you have the generator trained and ready for inference
+# Load the desired postures for evaluation (assuming they are preprocessed and in the 'desired_postures' folder)
+desired_postures_folder = 'desired_postures'
+
+# Evaluate the generator on the desired postures
+def evaluate_generator(generator, desired_postures_folder):
+    psnr_scores = []
+    ssim_scores = []
+
+    for filename in os.listdir(desired_postures_folder):
+        # Read the desired posture frame
+        desired_frame = cv2.imread(os.path.join(desired_postures_folder, filename))
+        desired_frame = cv2.cvtColor(desired_frame, cv2.COLOR_BGR2RGB)
+
+        # Resize and normalize the frame to match the generator's input size and range
+        desired_frame = cv2.resize(desired_frame, (256, 256))
+        desired_frame = desired_frame.astype('float32') / 255.0
+
+        # Generate a posture using the generator
+        generated_frame = generator(np.random.randn(1, noise_dim)).numpy().squeeze()
+
+        # Calculate PSNR and SSIM scores
+        psnr_score = psnr(desired_frame, generated_frame)
+        ssim_score = ssim(desired_frame, generated_frame, multichannel=True)
+
+        psnr_scores.append(psnr_score)
+        ssim_scores.append(ssim_score)
+
+        # Save the generated frame for visual inspection (optional)
+        cv2.imwrite(f'generated_postures/{filename}', generated_frame * 255)
+
+    # Calculate mean PSNR and SSIM scores
+    mean_psnr = np.mean(psnr_scores)
+    mean_ssim = np.mean(ssim_scores)
+
+    return mean_psnr, mean_ssim
+
+
+# Call the evaluation function
+mean_psnr, mean_ssim = evaluate_generator(generator, desired_postures_folder)
+
+# Print the evaluation results
+print(f"Mean PSNR: {mean_psnr}")
+print(f"Mean SSIM: {mean_ssim}")
+
+
+
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+
+# Assuming you have defined the generator and discriminator architectures
+# and compiled them as shown in the previous code snippets.
+
+# Hyperparameters
+batch_size = 32
+content_loss_weight = 1.0
+adv_loss_weight = 0.001
+noise_dim = 100
+
+# Initialize the generator, discriminator, and optimizers
+generator = build_generator()
+discriminator = build_discriminator()
+
+gen_optimizer = Adam(lr=0.0002, beta_1=0.5)
+disc_optimizer = Adam(lr=0.0002, beta_1=0.5)
+
+# Define the training step for one iteration
+@tf.function
+def train_step(real_frames, desired_frames):
+    # ... Same as before ...
+
+# Training loop
+num_epochs = 10000
+
+for epoch in range(num_epochs):
+    for batch_idx in range(len(data) // batch_size):
+        # ... Same as before ...
+
+    # Print and log the losses for monitoring
+    if epoch % 100 == 0:
+        print(f"Epoch {epoch}, Generator Loss: {gen_loss}, Discriminator Loss: {disc_loss}")
+
+    # Save generated frames and model weights at certain intervals (optional)
+    if epoch % 500 == 0:
+        save_generated_frames(generator, epoch)
+        generator.save_weights(f'generator_epoch_{epoch}.h5')
+        discriminator.save_weights(f'discriminator_epoch_{epoch}.h5')
+
+
+
+
+import tensorflow as tf
+from tensorflow.keras.optimizers import Adam
+
+# Assuming you have defined the generator and discriminator architectures
+# and compiled them as shown in the previous code snippets.
+
+# Hyperparameters
+batch_size = 32
+content_loss_weight = 1.0
+adv_loss_weight = 0.001
+noise_dim = 100
+
+# Initialize the generator, discriminator, and optimizers
+generator = build_generator()
+discriminator = build_discriminator()
+
+gen_optimizer = Adam(lr=0.0002, beta_1=0.5)
+disc_optimizer = Adam(lr=0.0002, beta_1=0.5)
+
+# Define the training step for one iteration
+@tf.function
+def train_step(real_frames, desired_frames):
+    # Step 1: Train the discriminator
+    with tf.GradientTape() as disc_tape:
+        generated_frames = generator(tf.random.normal([batch_size, noise_dim]))
+        real_predictions = discriminator(real_frames)
+        fake_predictions = discriminator(generated_frames)
+        disc_loss = discriminator_loss(real_predictions, fake_predictions)
+
+    disc_gradients = disc_tape.gradient(disc_loss, discriminator.trainable_variables)
+    disc_optimizer.apply_gradients(zip(disc_gradients, discriminator.trainable_variables))
+
+    # Step 2: Train the generator
+    with tf.GradientTape() as gen_tape:
+        generated_frames = generator(tf.random.normal([batch_size, noise_dim]))
+        fake_predictions = discriminator(generated_frames)
+        content_loss = content_loss(desired_frames, generated_frames)
+        adv_loss = adversarial_loss(fake_predictions)
+        gen_loss = content_loss_weight * content_loss + adv_loss_weight * adv_loss
+
+    gen_gradients = gen_tape.gradient(gen_loss, generator.trainable_variables)
+    gen_optimizer.apply_gradients(zip(gen_gradients, generator.trainable_variables))
+
+    return gen_loss, disc_loss
+
+# Training loop
+num_epochs = 10000
+
+for epoch in range(num_epochs):
+    for batch_idx in range(len(data) // batch_size):
+        # Randomly select a batch of video frames
+        real_frames_batch = sample_real_frames(batch_size)
+        desired_frames_batch = sample_desired_frames(batch_size)
+
+        # Perform one training iteration
+        gen_loss, disc_loss = train_step(real_frames_batch, desired_frames_batch)
+
+    # Print and log the losses for monitoring
+    if epoch % 100 == 0:
+        print(f"Epoch {epoch}, Generator Loss: {gen_loss}, Discriminator Loss: {disc_loss}")
+
+
+
+
+
+import cv2
+import numpy as np
+
+# Assuming you have the generator trained and ready for inference
+# Load the trained generator
+generator = build_generator()
+generator.load_weights('generator_weights.h5')  # Replace with the path to the saved generator weights
+
+# Function to generate a transformed frame in real-time
+def transform_frame(generator, noise_dim):
+    # Generate random noise vector
+    noise_vector = np.random.randn(1, noise_dim)
+
+    # Generate a frame using the generator
+    generated_frame = generator(noise_vector).numpy().squeeze()
+
+    # Denormalize the frame to the original pixel range
+    generated_frame = (generated_frame * 255).astype('uint8')
+
+    return generated_frame
+
+# Open a video capture object for the input video
+input_video_path = 'input_video.mp4'  # Replace with the path to the input video
+cap = cv2.VideoCapture(input_video_path)
+
+# Get video properties
+frame_width = int(cap.get(3))
+frame_height = int(cap.get(4))
+fps = int(cap.get(cv2.CAP_PROP_FPS))
+
+# Define the codec and create the VideoWriter object to save the output video
+output_video_path = 'output_video.mp4'  # Replace with the path to save the output video
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(output_video_path, fourcc, fps, (frame_width, frame_height))
+
+# Loop through the frames of the input video and generate the transformed frames
+while True:
+    ret, frame = cap.read()
+
+    if not ret:
+        break
+
+    # Preprocess the frame (resize and normalize) to match the generator's input size and range
+    frame = cv2.resize(frame, (256, 256))
+    frame = frame.astype('float32') / 255.0
+
+    # Transform the frame using the generator
+    transformed_frame = transform_frame(generator, noise_dim)
+
+    # Blend the transformed frame with the original frame (you can adjust the blending ratio)
+    alpha = 0.5
+    blended_frame = cv2.addWeighted(frame, alpha, transformed_frame, 1 - alpha, 0)
+
+    # Display and save the output frame
+    cv2.imshow('Transformed Frame', blended_frame)
+    out.write(blended_frame)
+
+    # Press 'q' to stop the loop
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release video capture and video writer objects
+cap.release()
+out.release()
+
+# Close all OpenCV windows
+cv2.destroyAllWindows()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
